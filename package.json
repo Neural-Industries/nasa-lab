@@ -1,0 +1,26 @@
+{
+  "name": "nasa-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NASA Lab — an immersive, real-time journey through NASA's open data.",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "dev:server": "node --watch server/index.js",
+    "dev:client": "vite",
+    "build": "vite build",
+    "start": "NODE_ENV=production node server/index.js",
+    "check": "node scripts/check-api.js"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "satellite.js": "^7.1.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.1"
+  }
+}

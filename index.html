@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>NASA Lab — the live universe, from NASA's open data</title>
+    <meta name="description" content="Fly through NASA's live open data in 3-D: yesterday's Earth from orbit, every tracked satellite, this month's solar storms, passing asteroids, the Moon, Mars and Vesta, and every known exoplanet." />
+    <meta name="theme-color" content="#020203" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://gibs.earthdata.nasa.gov" crossorigin />
+    <link rel="preconnect" href="https://trek.nasa.gov" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Public+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <!--
+      THESIS: One live universe in shared space and time, not a dashboard of NASA cards.
+      OWN-WORLD: User-pinned: the nasa.gov design language. Black surfaces with hairline borders, Inter bold headlines at tight tracking, Public Sans body, DM Mono uppercase labels tracked wide, NASA red (#D83933 / #F64137) for primary actions, active marks and round arrow icons. Colour inside the 3-D scenes belongs to the data. Every datum carries its source and time.
+      STORY: The visitor meets the real Earth as photographed recently with the satellites overhead right now, realises it is live, then travels by the destination rail to the Sun's storms, passing rocks, other worlds, 6,000 exoplanets and the archive.
+      FIRST VIEWPORT: Full-bleed WebGL Earth; black brand bar top-left with NASA Lab wordmark, live readouts and a red "Begin the tour" button; destination rail bottom-left with live log-distance tracks; time bar along the bottom; detail panel right.
+      FORM: nasa.gov design language, pinned by the user (supersedes the Golden Record roll, seed 5ece3262).
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+    -->
+    <canvas id="stage" aria-label="Interactive 3-D view" tabindex="0"></canvas>
+    <div id="labels" aria-hidden="true"></div>
+
+    <div id="boot" role="status" aria-live="polite">
+      <div class="boot__inner">
+        <div class="boot__orbit" aria-hidden="true">
+          <svg viewBox="0 0 88 88"><circle cx="44" cy="44" r="14" fill="#fff"/><ellipse cx="44" cy="44" rx="40" ry="40" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"/><g class="boot__sat"><circle cx="84" cy="44" r="4" fill="#f64137"/></g></svg>
+        </div>
+        <p class="boot__mark"><span class="brand__dot" aria-hidden="true"></span><span>NASA <span class="brand__lab">Lab</span></span></p>
+        <p class="boot__sub">Connecting to NASA's open data</p>
+        <div class="boot__bar" aria-hidden="true"><i></i></div>
+        <ol class="boot__log"></ol>
+        <button class="boot__enter etch-btn" type="button" hidden>Enter</button>
+      </div>
+    </div>
+
+    <header class="plate brand" id="brand">
+      <div class="brand__row">
+        <h1 class="brand__mark"><span class="brand__dot" aria-hidden="true"></span><span>NASA <span class="brand__lab">Lab</span></span></h1>
+        <div class="brand__tools">
+          <button class="icon-btn" id="btn-search" type="button" aria-label="Search everything (/)" title="Search everything  /"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg></button>
+          <button class="icon-btn" id="btn-sound" type="button" aria-pressed="false" aria-label="Sound (S)" title="Sound  S"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+          <button class="icon-btn" id="btn-snap" type="button" aria-label="Save a postcard (P)" title="Save a postcard  P"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="1"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg></button>
+          <button class="icon-btn" id="btn-help" type="button" aria-label="Keyboard and credits (?)" title="Keys & credits  ?"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg></button>
+        </div>
+      </div>
+      <p class="brand__scene" id="scene-title">Earth</p>
+      <dl class="brand__readouts" id="readouts"></dl>
+      <div class="brand__actions">
+        <button class="etch-btn etch-btn--primary" id="btn-tour" type="button">Begin the tour</button>
+        <button class="etch-btn" id="btn-archive" type="button">Archive</button>
+      </div>
+    </header>
+
+    <nav class="plate dest" id="pulsar" aria-label="Destinations"></nav>
+
+    <aside class="plate panel" id="panel" aria-label="Details">
+      <button class="panel__grip" id="panel-grip" type="button" aria-label="Collapse details" aria-expanded="true"><span></span></button>
+      <div class="panel__body" id="panel-body"></div>
+    </aside>
+
+    <div class="plate timebar" id="timebar" role="group" aria-label="Time">
+      <button class="icon-btn" id="time-play" type="button" aria-label="Pause time (Space)" title="Play / pause  Space"><svg viewBox="0 0 24 24"><path class="i-pause" d="M8 5v14M16 5v14"/><path class="i-play" d="M7 5l12 7-12 7z"/></svg></button>
+      <div class="timebar__clock">
+        <output id="time-date" class="mono">—</output>
+        <output id="time-rate" class="timebar__rate">real time</output>
+      </div>
+      <div class="timebar__scale" id="time-scale" aria-hidden="true"><svg preserveAspectRatio="none"></svg></div>
+      <div class="timebar__rates" role="radiogroup" aria-label="Time rate" id="time-rates"></div>
+      <button class="etch-btn etch-btn--small" id="time-now" type="button" title="Return to now  N">Now</button>
+    </div>
+
+    <div id="tooltip" role="tooltip" hidden></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <div class="caption plate" id="caption" hidden>
+      <p class="caption__title" id="caption-title"></p>
+      <p class="caption__text" id="caption-text"></p>
+      <div class="caption__controls">
+        <span class="caption__progress" id="caption-progress"></span>
+        <button class="etch-btn etch-btn--small" id="caption-next" type="button">Next</button>
+        <button class="etch-btn etch-btn--small" id="caption-stop" type="button">End tour</button>
+      </div>
+    </div>
+
+    <div class="sheet" id="archive" hidden role="dialog" aria-modal="true" aria-labelledby="archive-title"></div>
+    <div class="sheet sheet--palette" id="palette" hidden role="dialog" aria-modal="true" aria-label="Search everything"></div>
+    <div class="sheet sheet--help" id="help" hidden role="dialog" aria-modal="true" aria-labelledby="help-title"></div>
+
+    <div id="iris" aria-hidden="true"></div>
+    <noscript><p class="noscript">NASA Lab needs JavaScript and WebGL to render NASA's live data in 3-D.</p></noscript>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
